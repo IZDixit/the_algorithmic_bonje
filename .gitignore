@@ -58,3 +58,8 @@ data/
 *.tmp
 *.bak
 *.csv.bak
+
+# Local setup & path files (contain personal paths)
+script/how_to_run.txt
+script/run_app_safe.sh
+
