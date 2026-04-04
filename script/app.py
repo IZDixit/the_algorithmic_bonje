@@ -677,7 +677,75 @@ if ligo_file and shift_file and mpesa_file:
                     styles[idx] = styles[idx] + '; color: #7c2d12; font-weight: bold'
                 return styles
 
-            styled_df = final_output_df.style.format({
+            st.caption(
+                '**Row Highlighting:** Red tint = variance detected · Amber tint = 2+ Ligo transactions · Blue tint = 2+ MPesa transactions. '
+                'Column zones: Shift (neutral), Ligo (amber), MPesa (blue).'
+            )
+
+            # ---------------------------------------------------------
+            # TABLE FILTERS (affect both displayed rows and totals)
+            # ---------------------------------------------------------
+            with st.expander("🔍 Filter Table", expanded=False):
+                _fc1, _fc2, _fc3, _fc4 = st.columns(4)
+                with _fc1:
+                    _filter_invoice = st.text_input(
+                        "Invoice contains", value="",
+                        key='filter_invoice',
+                        placeholder="e.g. 1149"
+                    )
+                with _fc2:
+                    _filter_status = st.selectbox(
+                        "Match status", ["All", "Variance only", "2+ Ligo Txs", "2+ MPesa Txs",
+                                          "In Ligo", "In MPesa", "Discrepancy flagged"],
+                        key='filter_status'
+                    )
+                with _fc3:
+                    _filter_ligo_var_min = st.number_input(
+                        "Min |Ligo Variance|", value=0.0, min_value=0.0, step=0.5,
+                        key='filter_ligo_var_min'
+                    )
+                with _fc4:
+                    _filter_mpesa_var_min = st.number_input(
+                        "Min |MPesa Variance|", value=0.0, min_value=0.0, step=0.5,
+                        key='filter_mpesa_var_min'
+                    )
+
+            # Apply filters to a working copy — final_output_df stays intact for the map section.
+            _filtered_df = final_output_df.copy()
+
+            if _filter_invoice.strip():
+                _inv_col = 'Invoice' if 'Invoice' in _filtered_df.columns else _filtered_df.columns[0]
+                _filtered_df = _filtered_df[
+                    _filtered_df[_inv_col].astype(str).str.contains(_filter_invoice.strip(), case=False, na=False)
+                ]
+
+            if _filter_status == "Variance only":
+                _lv = pd.to_numeric(_filtered_df.get('Shift_vs_Ligo_Variance', 0), errors='coerce').fillna(0).abs()
+                _mv = pd.to_numeric(_filtered_df.get('Shift_vs_MPesa_Variance', 0), errors='coerce').fillna(0).abs()
+                _filtered_df = _filtered_df[(_lv > 0.001) | (_mv > 0.01)]
+            elif _filter_status == "2+ Ligo Txs":
+                _filtered_df = _filtered_df[pd.to_numeric(_filtered_df.get('Ligo_Tx_Count', 0), errors='coerce').fillna(0) > 1]
+            elif _filter_status == "2+ MPesa Txs":
+                _filtered_df = _filtered_df[pd.to_numeric(_filtered_df.get('MPesa_Tx_Count', 0), errors='coerce').fillna(0) > 1]
+            elif _filter_status == "In Ligo":
+                _filtered_df = _filtered_df[_filtered_df.get('In_Ligo', pd.Series([False] * len(_filtered_df))).fillna(False).astype(bool)]
+            elif _filter_status == "In MPesa":
+                _filtered_df = _filtered_df[_filtered_df.get('In_MPesa', pd.Series([False] * len(_filtered_df))).fillna(False).astype(bool)]
+            elif _filter_status == "Discrepancy flagged":
+                _filtered_df = _filtered_df[_filtered_df.get('Discrepancy_Flag', pd.Series([False] * len(_filtered_df))).fillna(False).astype(bool)]
+
+            if _filter_ligo_var_min > 0 and 'Shift_vs_Ligo_Variance' in _filtered_df.columns:
+                _filtered_df = _filtered_df[pd.to_numeric(_filtered_df['Shift_vs_Ligo_Variance'], errors='coerce').fillna(0).abs() >= _filter_ligo_var_min]
+
+            if _filter_mpesa_var_min > 0 and 'Shift_vs_MPesa_Variance' in _filtered_df.columns:
+                _filtered_df = _filtered_df[pd.to_numeric(_filtered_df['Shift_vs_MPesa_Variance'], errors='coerce').fillna(0).abs() >= _filter_mpesa_var_min]
+
+            _n_showing = len(_filtered_df)
+            _n_total_rows = len(final_output_df)
+            if _n_showing < _n_total_rows:
+                st.info(f"Showing **{_n_showing}** of **{_n_total_rows}** rows. Totals reflect filtered rows only.")
+
+            styled_df = _filtered_df.style.format({
                 'Shift_Liters': '{:,.2f}',
                 'Shift_Amount': '{:,.2f}',
                 'Ligo_Matched_Qty': '{:,.2f}',
@@ -686,12 +754,48 @@ if ligo_file and shift_file and mpesa_file:
                 'Shift_vs_MPesa_Variance': '{:,.2f}',
             }, na_rep='').apply(highlight_focus_columns, axis=1)
 
-            st.caption(
-                '**Row Highlighting:** Red tint = variance detected · Amber tint = 2+ Ligo transactions · Blue tint = 2+ MPesa transactions. '
-                'Column zones: Shift (neutral), Ligo (amber), MPesa (blue).'
-            )
-
             st.dataframe(styled_df, use_container_width=True, height=500)
+
+            # --- Totals row — always reflects filtered rows ---
+            _numeric_sum_cols = [
+                'Shift_Liters', 'Shift_Amount',
+                'Ligo_Matched_Qty', 'Shift_vs_Ligo_Variance',
+                'MPesa_Matched_Amount', 'Shift_vs_MPesa_Variance',
+                'Ligo_Tx_Count', 'MPesa_Tx_Count',
+            ]
+            _totals = {'Invoice': f'TOTALS ({_n_showing} rows)'}
+            for _c in _numeric_sum_cols:
+                if _c in _filtered_df.columns:
+                    _totals[_c] = pd.to_numeric(_filtered_df[_c], errors='coerce').sum()
+            if 'Discrepancy_Flag' in _filtered_df.columns:
+                _totals['Discrepancy_Flag'] = f"{_filtered_df['Discrepancy_Flag'].sum()} flagged"
+            if 'In_Ligo' in _filtered_df.columns:
+                _totals['In_Ligo'] = f"{_filtered_df['In_Ligo'].sum()} matched"
+            if 'In_MPesa' in _filtered_df.columns:
+                _totals['In_MPesa'] = f"{_filtered_df['In_MPesa'].sum()} matched"
+            _totals_df = pd.DataFrame([_totals])
+
+            def _style_totals(row):
+                base = 'font-weight: bold; background-color: #1e293b; color: #f1f5f9'
+                styles = [base] * len(row)
+                for _col in ['Shift_vs_Ligo_Variance', 'Shift_vs_MPesa_Variance']:
+                    if _col in row.index:
+                        try:
+                            val = float(row[_col])
+                        except (ValueError, TypeError):
+                            val = 0.0
+                        idx = row.index.get_loc(_col)
+                        styles[idx] = base + ('; color: #f87171' if abs(val) > 0.001 else '; color: #4ade80')
+                return styles
+
+            st.dataframe(
+                _totals_df.style.apply(_style_totals, axis=1).format(
+                    {c: '{:,.2f}' for c in _numeric_sum_cols if c in _totals_df.columns},
+                    na_rep=''
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
 
             # --- Diagnostics: unmatched manual Ligo mappings and MPesa invoices ---
             # Ligo mappings that don't appear in Shift
