@@ -1,0 +1,47 @@
+{
+  "name": "debug-visualizer-clone",
+  "displayName": "Debug Visualizer Clone",
+  "description": "A Python-focused debug visualization panel for VS Code.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onDebug"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "debugVisualizerClone.open",
+        "title": "Debug Visualizer Clone: Open Panel"
+      },
+      {
+        "command": "debugVisualizerClone.visualizeSelection",
+        "title": "Debug Visualizer Clone: Visualize Selection"
+      },
+      {
+        "command": "debugVisualizerClone.refresh",
+        "title": "Debug Visualizer Clone: Refresh"
+      },
+      {
+        "command": "debugVisualizerClone.focusReconciliation",
+        "title": "Debug Visualizer Clone: Focus Reconciliation Tables"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node ./node_modules/typescript/bin/tsc -p ./",
+    "watch": "node ./node_modules/typescript/bin/tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.10",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.3"
+  }
+}

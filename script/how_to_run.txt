@@ -1,0 +1,25 @@
+# 1. Create the virtual environment in your Home directory (~/) instead of the external drive
+python3 -m venv ~/forensic_venv
+
+# 2. Activate that virtual environment
+source ~/forensic_venv/bin/activate
+
+# 3. Install the requirements (they will be installed safely into ~/forensic_venv)
+cd /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script
+pip install -r requirements.txt
+
+# 4. IMPORTANT: Start Streamlit from a stable directory (home), using absolute app path
+#    This avoids: OSError: [Errno 5] Input/output error from os.getcwd()
+cd ~
+streamlit run /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script/app.py
+
+# Optional one-liner (equivalent):
+# source ~/forensic_venv/bin/activate && cd ~ && streamlit run /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script/app.py
+
+
+./run_app_safe.sh
+
+cd /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script
+./run_app_safe.sh
+
+source /home/izdixit/forensic_venv/bin/activate && cd /home/izdixit && streamlit run /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script/app.py

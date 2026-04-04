@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Streamlit
+.streamlit/
+.streamlit_cache/
+
+# Node.js / npm
+node_modules/
+npm-debug.log
+package-lock.json
+out/
+*.js.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+.env
+.env.local
+.env.*.local
+
+# Data (if needed, adjust as appropriate)
+data_csv/
+data/
+
+# Temporary files
+*.tmp
+*.bak
+*.csv.bak
