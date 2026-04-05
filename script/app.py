@@ -3,6 +3,8 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, GridUpdateMode
 from pathlib import Path
 import re
+import plotly.express as px
+import plotly.graph_objects as go
 
 LIGO_ROW_KEY_COL = "__ligo_row_key"
 
@@ -285,7 +287,31 @@ if ligo_file and shift_file and mpesa_file:
         
         c1, c2 = st.columns([2, 1])
         with c1:
-            st.bar_chart(data=pump_summary, x="Pump", y=ligo_qty_col, use_container_width=True)
+            fig_pump = px.bar(
+                pump_summary,
+                x="Pump",
+                y=ligo_qty_col,
+                text=ligo_qty_col,
+                color="Pump",
+                color_discrete_sequence=["#4e6bff", "#f59e0b", "#22c55e", "#38bdf8", "#f97316", "#a78bfa"],
+                labels={"Pump": "Pump", ligo_qty_col: "Quantity (L)"},
+            )
+            fig_pump.update_traces(
+                textposition="outside",
+                texttemplate="%{text:,.2f} L",
+                showlegend=False,
+            )
+            fig_pump.update_layout(
+                xaxis_tickangle=-30,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(size=12),
+                height=360,
+                yaxis_title="Quantity (L)",
+                yaxis=dict(gridcolor="rgba(0,0,0,0.07)"),
+                margin=dict(l=10, r=10, t=32, b=10),
+            )
+            st.plotly_chart(fig_pump, use_container_width=True)
         with c2:
             st.dataframe(pump_summary, use_container_width=True, hide_index=True)
 
@@ -821,12 +847,7 @@ if ligo_file and shift_file and mpesa_file:
             with st.expander("📊 View Reconciliation Map", expanded=st.session_state.get('recon_map_open', True)):
                 # Keep map open across reruns triggered by widget changes (e.g., invoice selectbox).
                 st.session_state['recon_map_open'] = True
-                try:
-                    import plotly.graph_objects as go
-                    _plotly_ok = True
-                except ImportError:
-                    _plotly_ok = False
-                    st.warning("plotly is not installed. Run: `pip install plotly`")
+                _plotly_ok = True
 
                 _n_total = len(final_output_df)
                 _in_ligo  = final_output_df.get('In_Ligo',  pd.Series([False] * _n_total)).fillna(False).astype(bool)

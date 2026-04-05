@@ -22,6 +22,14 @@ The tool performs intelligent multi-source joins, detects variances, and flags h
   - Blue overlay: 2+ MPesa transactions on same invoice
 - **Reconciliation Map**: Sankey flow diagram, KPI metrics, category breakdown
 - **Transaction Logic Map**: Per-invoice deep dive with transaction composition details
+- **Invoice Match-Delta View (Flow UX)**:
+   - Context Sankey: shows whether selected liters are unique or shared across Shift rows
+   - Match Sankey: shows balanced, over-matched, under-matched, or unmatched flow for the selected invoice
+   - Inline explanation captions and actionable status messages for analysts
+- **Manual 24hr Transaction Selection**:
+   - Per-row selector for invoices with multiple 24hr matches
+   - One-to-one enforcement (selected transaction disappears from other rows until cleared)
+   - `Selected_24hr_Liters` and `Selected_24hr_Variance` columns added to output
 - **Variance Analysis**:
   - Variance Deep Dive: X/Y scatter plot showing Shift vs Ligo vs MPesa relationships
   - All Invoices Overview: Bar + line chart across full dataset
@@ -72,6 +80,8 @@ The tool performs intelligent multi-source joins, detects variances, and flags h
 
 ### Running the Streamlit App
 
+#### Primary Workbench (`script/app.py`)
+
 ```bash
 source ~/forensic_venv/bin/activate
 cd ~
@@ -79,6 +89,16 @@ streamlit run /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/script/app.p
 ```
 
 Then open [http://localhost:8501](http://localhost:8501) in your browser.
+
+#### Suswa Reconciliation App (`suswa_script/app.py`)
+
+```bash
+source ~/forensic_venv/bin/activate
+cd ~
+streamlit run /media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/suswa_script/app.py
+```
+
+This app includes the newer invoice flow experience (Context + Match Sankey), one-to-one manual transaction assignment, and inline forensic explanations in the Invoice Match-Delta section.
 
 **Workflow**:
 1. Upload your Ligo, Shift, and MPesa CSV files (sidebar)
@@ -108,6 +128,12 @@ the_algorithmic/
 │   ├── requirements.txt                    # Python dependencies
 │   ├── run_app_safe.sh                     # Safe run script
 │   └── how_to_run.txt                      # Quick start guide
+├── suswa_script/
+│   └── app.py                              # Suswa shift-vs-24hr app with Sankey invoice flow UX
+├── suswa_data_csv/
+│   ├── shift_report.csv                    # Suswa shift sample/input
+│   ├── mpesa_28_02.csv                     # Suswa MPesa sample/input
+│   └── 24hr_report.csv                     # Suswa 24hr pump sample/input
 ├── debug-visualizer-clone/
 │   ├── src/
 │   │   └── extension.ts                    # VS Code extension source
@@ -150,6 +176,18 @@ The app auto-detects the following columns; adjust file headers if needed:
    - MPesa Variance: `Shift_Amount - MPesa_Matched_Amount`
 5. **Flags**: Discrepancy rows are marked if variance exceeds thresholds (0.001 L for Ligo, 0.01 for MPesa)
 6. **Output**: Columns include all Shift cols + Ligo analysis (qty, variance, tx count, match details, pumps, times) + MPesa analysis + status flags
+
+## Invoice Match-Delta Interpretation (Suswa App)
+
+When you choose an invoice in the Invoice Match-Delta section:
+- **Context Sankey** explains if that liters value is unique in Shift or repeated across multiple rows.
+- **Match Sankey** explains how many 24hr rows matched that invoice profile and whether the result is:
+   - **Balanced**: exactly one matching 24hr transaction
+   - **Over-matched**: multiple matching 24hr transactions (manual selection required)
+   - **Under-matched**: no sufficient matching transaction(s), likely data-entry or tolerance edge case
+   - **Unmatched**: zero candidate 24hr transactions found
+
+This view is intentionally explanatory so non-technical reviewers can interpret flow outcomes without reading raw tables.
 
 ## Row Highlighting Rules
 
@@ -214,4 +252,4 @@ For questions or bug reports, please open an issue on GitHub.
 
 ---
 
-**Last Updated**: April 4, 2026
+**Last Updated**: April 5, 2026
