@@ -26,8 +26,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Streamlit
-.streamlit/
+# Streamlit cache only — keep .streamlit/config.toml committed
 .streamlit_cache/
 
 # Node.js / npm
@@ -50,9 +49,11 @@ out/
 .env.local
 .env.*.local
 
-# Data (if needed, adjust as appropriate)
+# Data — sensitive financial CSV files, never commit to public repo
 data_csv/
 data/
+suswa_data_csv/
+suswa_data/
 
 # Temporary files
 *.tmp

@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -13,9 +14,10 @@ RATE_TOL = 5.0    # KES/L   — abs(RATE − Price(KES)) must be ≤ this
 
 _EXCEL_EPOCH = pd.Timestamp("1899-12-30")
 
-# Default file paths (workspace location)
-DEFAULT_MPESA_PATH = "/media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/suswa_data_csv/mpesa_28_02.csv"
-DEFAULT_SHIFT_PATH = "/media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/suswa_data_csv/shift_report.csv"
+# Default file paths (relative to repo root — works locally and on Streamlit Cloud)
+_REPO_ROOT = Path(__file__).parent.parent
+DEFAULT_MPESA_PATH = str(_REPO_ROOT / "suswa_data_csv" / "mpesa_28_02.csv")
+DEFAULT_SHIFT_PATH = str(_REPO_ROOT / "suswa_data_csv" / "shift_report.csv")
 
 # ──────────────────────────────────────────────────────────────
 # SESSION STATE INITIALIZATION

@@ -75,7 +75,7 @@ def _extract_invoice_tokens(value):
 
 
 # Hardcoded workspace root — avoids Path.resolve() I/O on mounted filesystem.
-_WORKSPACE_ROOT = Path('/media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic')
+_WORKSPACE_ROOT = Path(__file__).parent.parent
 
 
 def _resolve_uploaded_ligo_path(uploaded_file):
