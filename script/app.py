@@ -194,16 +194,18 @@ if ligo_file and shift_file and mpesa_file:
     if editable_path != detected_path:
         st.session_state['ligo_source_path'] = editable_path
 
-    # Download button always reads current session state (backup).
-    try:
-        _dl_df = st.session_state['df_ligo_working'].copy()
-        if LIGO_ROW_KEY_COL in _dl_df.columns:
-            _dl_df = _dl_df.drop(columns=[LIGO_ROW_KEY_COL])
-        if 'Physical_Invoice_No' in _dl_df.columns:
-            _dl_df['Physical_Invoice_No'] = _dl_df['Physical_Invoice_No'].fillna('').astype(str).str.strip().replace({'nan': '', 'None': ''})
-        st.sidebar.download_button("Download edited Ligo CSV", data=_dl_df.to_csv(index=False).encode('utf-8'), file_name='ligo_edits_saved.csv', mime='text/csv')
-    except Exception:
-        pass
+    # Sidebar download is driven by session state set when Save is clicked.
+    # This way the download always reflects the last saved snapshot.
+    if st.session_state.get('ligo_download_bytes'):
+        _fname = st.session_state.get('ligo_download_filename', 'ligo_edits_saved.csv')
+        st.sidebar.download_button(
+            "⬇️ Download saved Ligo CSV",
+            data=st.session_state['ligo_download_bytes'],
+            file_name=_fname,
+            mime='text/csv',
+        )
+    else:
+        st.sidebar.caption("Download will appear here after you click Save.")
 
     # Clean Shift: Remove rows where Invoice is empty
     if 'Invoice' in df_shift.columns:
@@ -422,11 +424,9 @@ if ligo_file and shift_file and mpesa_file:
     # Show the resolved save path clearly so user can verify before clicking save.
     _cur_save_path = st.session_state.get('ligo_source_path', '').strip()
     if _cur_save_path and Path(_cur_save_path).exists():
-        st.info(f"Will save to: `{_cur_save_path}`")
-    elif _cur_save_path:
-        st.warning(f"Path set but file not found: `{_cur_save_path}` — check the path in the sidebar.")
+        st.info(f"Will save to disk: `{_cur_save_path}`")
     else:
-        st.warning("Could not auto-detect Ligo file path. Paste the full path in the sidebar field, e.g.: `/media/izdixit/HIKSEMI/forensic/bonje/the_algorithmic/data_csv/ligo_20_03_N.csv`")
+        st.info("No local file path detected — clicking **Save** will write edits to session state and trigger a CSV download. Re-upload that file next session to continue where you left off.")
 
     save_status = st.empty()
 
@@ -462,16 +462,24 @@ if ligo_file and shift_file and mpesa_file:
         st.session_state['df_ligo_working'] = validated_df
         st.session_state['last_ligo_autosave'] = pd.Timestamp.now().strftime('%H:%M:%S')
 
-        # Step 5: write to file immediately, same rerun, same data
+        # Step 5: prepare export dataframe
         export_df = validated_df.copy()
         if LIGO_ROW_KEY_COL in export_df.columns:
             export_df = export_df.drop(columns=[LIGO_ROW_KEY_COL])
         if 'Physical_Invoice_No' in export_df.columns:
             export_df['Physical_Invoice_No'] = export_df['Physical_Invoice_No'].fillna('').astype(str).str.strip().replace({'nan': '', 'None': ''})
 
+        # Always store CSV bytes in session state so the sidebar download button
+        # reflects the latest save — works both locally and on Streamlit Cloud.
+        _uploaded_name = getattr(ligo_file, 'name', 'ligo_edits_saved.csv')
+        _download_name = Path(_uploaded_name).stem + '_saved.csv'
+        csv_bytes = export_df.to_csv(index=False).encode('utf-8')
+        st.session_state['ligo_download_bytes'] = csv_bytes
+        st.session_state['ligo_download_filename'] = _download_name
+
+        # Step 6: also attempt disk write if a valid path is available (local use)
         file_path = st.session_state.get('ligo_source_path', '').strip()
         if not file_path:
-            # Last-resort: try to find the file now by uploaded filename.
             file_path = _resolve_uploaded_ligo_path(ligo_file) or ''
             if file_path:
                 st.session_state['ligo_source_path'] = file_path
@@ -481,13 +489,13 @@ if ligo_file and shift_file and mpesa_file:
                 target = Path(file_path)
                 if target.exists():
                     export_df.to_csv(target, index=False)
-                    save_status.success(f"Written to file: `{file_path}` at {st.session_state['last_ligo_autosave']}")
+                    save_status.success(f"✅ Written to disk: `{file_path}` at {st.session_state['last_ligo_autosave']} — download also available in sidebar.")
                 else:
-                    save_status.error(f"File does not exist: `{file_path}` — paste the correct path in the sidebar.")
+                    save_status.warning(f"Path not found on disk (`{file_path}`). Edits saved — use the **Download** button in the sidebar to get your updated CSV.")
             except Exception as write_err:
-                save_status.error(f"File write failed: {write_err}")
+                save_status.warning(f"Disk write failed ({write_err}). Edits saved — use the **Download** button in the sidebar.")
         else:
-            save_status.error("No file path found. Paste the full path in the Ligo CSV save path field in the sidebar.")
+            save_status.success(f"✅ Edits saved at {st.session_state['last_ligo_autosave']}. Use the **⬇️ Download saved Ligo CSV** button in the sidebar to get your file.")
     elif st.session_state.get('last_ligo_autosave'):
         save_status.caption(f"Last saved at {st.session_state['last_ligo_autosave']}.")
 
