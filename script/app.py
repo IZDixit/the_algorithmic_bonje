@@ -422,7 +422,7 @@ if ligo_file and shift_file and mpesa_file:
             st.session_state['ligo_grid_buffer'] = _as_df
 
     # Show the resolved save path clearly so user can verify before clicking save.
-    _cur_save_path = st.session_state.get('ligo_source_path', '').strip()
+    _cur_save_path = (st.session_state.get('ligo_source_path') or '').strip()
     if _cur_save_path and Path(_cur_save_path).exists():
         st.info(f"Will save to disk: `{_cur_save_path}`")
     else:
@@ -478,7 +478,7 @@ if ligo_file and shift_file and mpesa_file:
         st.session_state['ligo_download_filename'] = _download_name
 
         # Step 6: also attempt disk write if a valid path is available (local use)
-        file_path = st.session_state.get('ligo_source_path', '').strip()
+        file_path = (st.session_state.get('ligo_source_path') or '').strip()
         if not file_path:
             file_path = _resolve_uploaded_ligo_path(ligo_file) or ''
             if file_path:
